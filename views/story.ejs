@@ -1,64 +1,73 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= story.title %></title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= story.title %> - Story.id</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-white text-slate-900 antialiased">
-    <article class="max-w-2xl mx-auto px-6 py-10">
-        <header class="mb-10 flex justify-between items-center">
-            <a href="/" class="text-blue-600 font-bold">← Kembali</a>
-            <button onclick="shareLink()" class="p-2 bg-slate-100 rounded-full hover:bg-slate-200">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-            </button>
-        </header>
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-slate-100 sticky top-0 z-50">
+        <div class="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
+            <a href="/" class="text-blue-600 font-bold text-sm flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                Kembali
+            </a>
+            <% if (user) { %>
+                <a href="/upload" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-blue-700 transition">Tulis Cerita</a>
+            <% } %>
+        </div>
+    </nav>
 
-        <img src="<%= story.coverImg %>" class="w-full h-80 object-cover rounded-[2.5rem] mb-10 shadow-sm">
+    <article class="max-w-2xl mx-auto px-6 py-8">
+        <img src="<%= story.coverImg %>" class="w-full h-72 md:h-96 object-cover rounded-[2.5rem] mb-10 shadow-sm border border-slate-50">
 
         <div class="flex items-center gap-4 mb-8">
             <a href="/profile/<%= story.authorId %>">
-                <img src="<%= story.authorImg %>" class="w-12 h-12 rounded-full border-2 border-blue-500 p-0.5 object-cover">
+                <img src="<%= story.authorImg %>" class="w-12 h-12 rounded-full border-2 border-blue-100 p-0.5 object-cover" onerror="this.src='https://ui-avatars.com/api/?name=Penulis'">
             </a>
             <div>
-                <a href="/profile/<%= story.authorId %>" class="font-bold text-slate-800 block"><%= story.authorName %></a>
+                <a href="/profile/<%= story.authorId %>" class="font-black text-slate-800 block text-lg"><%= story.authorName %></a>
                 <p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest"><%= story.createdAt %> • <%= story.genre %></p>
             </div>
         </div>
 
-        <h1 class="text-4xl font-black text-slate-900 mb-8 leading-tight"><%= story.title %></h1>
-        <div class="text-slate-700 text-lg leading-relaxed whitespace-pre-line mb-16"><%= story.storyText %></div>
+        <h1 class="text-3xl md:text-4xl font-black text-slate-900 mb-8 leading-tight"><%= story.title %></h1>
+        <div class="text-slate-700 text-lg leading-relaxed whitespace-pre-line mb-16 border-b border-slate-100 pb-16">
+            <%= story.storyText %>
+        </div>
 
-        <!-- Interaction Area -->
-        <div class="bg-slate-50 p-8 rounded-[2rem] mb-20 border border-slate-100">
-            <div class="flex gap-8 mb-8 border-b border-slate-200 pb-6">
-                <button onclick="likeStory('<%= story.id %>')" class="flex items-center gap-2 font-black text-slate-700">
+        <!-- Interaksi -->
+        <div class="pb-20">
+            <div class="flex gap-8 mb-8">
+                <button onclick="likeStory('<%= story.id %>')" class="flex items-center gap-2 font-black text-slate-700 bg-slate-100 px-5 py-2 rounded-full hover:bg-pink-50 hover:text-pink-500 transition">
                     ❤️ <span id="likeCount"><%= story.likes ? story.likes.length : 0 %></span> Suka
                 </button>
-                <div class="flex items-center gap-2 font-black text-slate-700">
+                <div class="flex items-center gap-2 font-black text-slate-700 bg-slate-100 px-5 py-2 rounded-full">
                     💬 <%= story.comments ? story.comments.length : 0 %> Komentar
                 </div>
             </div>
 
             <% if(user) { %>
-            <form action="/story/<%= story.id %>/comment" method="POST" class="mb-8">
-                <div class="flex gap-2">
-                    <input type="text" name="text" placeholder="Tulis komentar kamu..." required class="flex-grow p-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500">
-                    <button class="bg-blue-600 text-white px-6 rounded-2xl font-bold">Kirim</button>
+            <form action="/story/<%= story.id %>/comment" method="POST" class="mb-10">
+                <div class="flex flex-col gap-3">
+                    <textarea name="text" placeholder="Berikan komentar..." required class="w-full p-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                    <button class="bg-blue-600 text-white py-3 rounded-2xl font-black text-sm">Kirim Komentar</button>
                 </div>
             </form>
-            <% } else { %>
-            <p class="text-center text-slate-400 text-sm mb-8"><a href="/login" class="text-blue-600 font-bold">Login</a> untuk memberi komentar.</p>
             <% } %>
 
             <div class="space-y-4">
-                <% if(story.comments) { story.comments.reverse().forEach(c => { %>
-                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                        <p class="text-xs font-bold text-blue-600 mb-1"><%= c.userName %></p>
-                        <p class="text-slate-700"><%= c.text %></p>
-                        <p class="text-[9px] text-slate-300 mt-2"><%= c.date %></p>
+                <% if(story.comments && story.comments.length > 0) { story.comments.reverse().forEach(c => { %>
+                    <div class="bg-slate-50 p-4 rounded-2xl">
+                        <p class="text-xs font-black text-blue-600 mb-1"><%= c.userName %></p>
+                        <p class="text-sm text-slate-700"><%= c.text %></p>
+                        <p class="text-[9px] text-slate-300 mt-2 font-bold"><%= c.date %></p>
                     </div>
-                <% })} %>
+                <% })} else { %>
+                    <p class="text-center text-slate-400 text-sm italic">Belum ada komentar.</p>
+                <% } %>
             </div>
         </div>
     </article>
@@ -69,10 +78,6 @@
             if (res.status === 401) return window.location.href = '/login';
             const data = await res.json();
             document.getElementById('likeCount').innerText = data.count;
-        }
-        function shareLink() {
-            navigator.clipboard.writeText(window.location.href);
-            alert('Link cerita berhasil disalin!');
         }
     </script>
 </body>
