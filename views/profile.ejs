@@ -6,7 +6,7 @@
     <title>Profil <%= profile.name %> - Story.id</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 font-sans">
+<body class="bg-slate-50 font-sans text-slate-900">
     <!-- Navbar -->
     <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -24,7 +24,7 @@
             <img src="<%= profile.profilePic || 'https://ui-avatars.com/api/?size=128&name=' + profile.name %>" 
             class="w-28 h-28 rounded-full mx-auto mb-4 object-cover border-4 border-slate-50 shadow-md bg-slate-100">
             
-            <h1 class="text-2xl font-black text-slate-900 leading-tight"><%= profile.name %></h1>
+            <h1 class="text-2xl font-black"><%= profile.name %></h1>
             <p class="text-slate-400 font-bold text-sm mb-6">@<%= profile.username %></p>
             
             <div class="flex justify-center items-center gap-8 mb-8">
@@ -47,8 +47,6 @@
                     class="px-8 py-2.5 rounded-2xl font-black text-sm transition <%= isFollowing ? 'bg-slate-100 text-slate-600' : 'bg-blue-600 text-white' %>">
                         <%= isFollowing ? 'Mengikuti' : 'Ikuti Penulis' %>
                     </button>
-                <% } else { %>
-                    <a href="/login" class="bg-blue-600 text-white px-8 py-2.5 rounded-2xl font-black text-sm">Ikuti Penulis</a>
                 <% } %>
             </div>
         </div>
@@ -62,20 +60,32 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <% if(stories && stories.length > 0) { %>
                 <% stories.forEach(s => { %>
-                    <a href="/story/<%= s.id %>" class="bg-white p-4 rounded-3xl flex gap-4 border border-slate-200 shadow-sm hover:border-blue-200 transition group">
-                        <img src="<%= s.coverImg %>" class="w-20 h-28 rounded-2xl object-cover bg-slate-100 flex-shrink-0 group-hover:scale-105 transition">
-                        <div class="flex flex-col justify-center py-1">
-                            <h3 class="font-bold text-slate-800 line-clamp-2 leading-snug mb-2"><%= s.title %></h3>
-                            <div class="flex items-center gap-2">
-                                <span class="text-[9px] bg-blue-50 text-blue-600 font-black px-2 py-1 rounded-lg uppercase tracking-tight"><%= s.genre %></span>
-                                <span class="text-[9px] text-slate-300 font-bold"><%= s.createdAt %></span>
+                    <div class="relative group">
+                        <a href="/story/<%= s.id %>" class="bg-white p-4 rounded-3xl flex gap-4 border border-slate-200 shadow-sm hover:border-blue-200 transition">
+                            <img src="<%= s.coverImg %>" class="w-20 h-28 rounded-2xl object-cover bg-slate-100 flex-shrink-0">
+                            <div class="flex flex-col justify-center py-1">
+                                <h3 class="font-bold text-slate-800 line-clamp-2 leading-snug mb-2"><%= s.title %></h3>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[9px] bg-blue-50 text-blue-600 font-black px-2 py-1 rounded-lg uppercase"><%= s.genre %></span>
+                                </div>
                             </div>
-                        </div>
-                    </a>
+                        </a>
+                        
+                        <!-- TOMBOL HAPUS (Hanya Muncul Jika Ini Profil Kamu) -->
+                        <% if (user && user.id === profile.id) { %>
+                            <form action="/story/delete/<%= s.id %>" method="POST" onsubmit="return confirm('Hapus cerita ini secara permanen?')" class="absolute top-2 right-2">
+                                <button type="submit" class="w-8 h-8 bg-red-50 text-red-500 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition shadow-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </form>
+                        <% } %>
+                    </div>
                 <% }) %>
             <% } else { %>
                 <div class="col-span-full py-16 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-                    <p class="text-slate-400 text-sm italic">Belum ada karya yang dipublikasikan.</p>
+                    <p class="text-slate-400 text-sm italic">Belum ada karya.</p>
                 </div>
             <% } %>
         </div>
@@ -83,7 +93,6 @@
 
     <script>
         async function followUser(id) {
-            const btn = document.getElementById('fbtn');
             const res = await fetch(`/follow/${id}`, { method: 'POST' });
             const data = await res.json();
             if(data.ok) location.reload();
