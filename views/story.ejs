@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= story.title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white">
+    <article class="max-w-3xl mx-auto px-6 py-12">
+        <a href="/" class="inline-block mb-8 text-blue-600 font-bold">← Kembali</a>
+        
+        <img src="<%= story.coverImg %>" class="w-full h-80 object-cover rounded-3xl mb-8 shadow-xl">
+        
+        <div class="flex items-center gap-4 mb-6">
+            <img src="<%= story.authorImg %>" class="w-14 h-14 rounded-full border-2 border-blue-500 p-0.5">
+            <div>
+                <h4 class="font-bold text-slate-800"><%= story.authorName %></h4>
+                <p class="text-sm text-slate-500">Diposting pada <%= story.createdAt %></p>
+            </div>
+            <span class="ml-auto bg-blue-100 text-blue-700 px-4 py-1 rounded-full text-xs font-bold uppercase"><%= story.genre %></span>
+        </div>
+
+        <h1 class="text-4xl md:text-5xl font-black text-slate-900 mb-8 leading-tight"><%= story.title %></h1>
+        
+        <div class="prose max-w-none text-slate-700 text-lg leading-relaxed whitespace-pre-line mb-12">
+            <%= story.storyText %>
+        </div>
+
+        <div class="border-t border-slate-100 pt-8 flex flex-col items-center">
+            <button onclick="shareLink()" class="bg-slate-900 text-white px-8 py-3 rounded-full font-bold flex items-center gap-2 hover:scale-105 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                </svg>
+                Bagikan Cerita
+            </button>
+        </div>
+    </article>
+
+    <script>
+        function shareLink() {
+            if (navigator.share) {
+                navigator.share({
+                    title: '<%= story.title %>',
+                    url: window.location.href
+                }).catch(console.error);
+            } else {
+                navigator.clipboard.writeText(window.location.href);
+                alert('Link disalin ke clipboard!');
+            }
+        }
+    </script>
+</body>
+</html>
