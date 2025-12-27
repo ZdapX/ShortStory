@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Story</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 p-4 md:p-8">
+    <div class="max-w-2xl mx-auto bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+        <h1 class="text-2xl font-bold mb-6 text-slate-800">Buat Cerita Baru</h1>
+        
+        <form action="/upload" method="POST" class="space-y-5">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">Judul Cerita</label>
+                <input type="text" name="title" required class="w-full p-3 border-2 border-slate-100 rounded-xl focus:border-blue-500 outline-none">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Genre</label>
+                    <select name="genre" class="w-full p-3 border-2 border-slate-100 rounded-xl outline-none">
+                        <option>Horror</option>
+                        <option>Romance</option>
+                        <option>Comedy</option>
+                        <option>Action</option>
+                        <option>Fantasy</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Nama Penulis</label>
+                    <input type="text" name="authorName" required class="w-full p-3 border-2 border-slate-100 rounded-xl outline-none">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">URL Cover Cerita (Opsional)</label>
+                <input type="url" name="coverImg" placeholder="https://..." class="w-full p-3 border-2 border-slate-100 rounded-xl outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">URL Foto Profil (Opsional)</label>
+                <input type="url" name="authorImg" placeholder="https://..." class="w-full p-3 border-2 border-slate-100 rounded-xl outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">Isi Cerita</label>
+                <textarea name="storyText" rows="8" required class="w-full p-3 border-2 border-slate-100 rounded-xl outline-none"></textarea>
+            </div>
+
+            <button type="submit" class="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition">Publikasikan Sekarang</button>
+            <a href="/" class="block text-center text-slate-400 font-medium">Batal</a>
+        </form>
+    </div>
+</body>
+</html>
