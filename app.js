@@ -1,72 +1,86 @@
 
 const express = require('express');
-const Redis = require('ioredis');
+const { Redis } = require('@upstash/redis');
 const bodyParser = require('body-parser');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
 const app = express();
-const port = 3000;
 
-// Konfigurasi Database Upstash (Hardcoded sesuai permintaan)
-const redis = new Redis('rediss://default:AcQ4AAIncDFlYjI2ZWM2ODhmOGQ0N2YwOTI1Njg5ZDA3ZjRjMDdhMHAxNTAyMzI@growing-firefly-50232.upstash.io:6379');
-
-app.set('view engine', 'ejs');
-app.use(express.static('public'));
-app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
-
-// ROUTE: Beranda (Menampilkan Semua Story & Search)
-app.get('/', async (req, res) => {
-    const search = req.query.search || '';
-    const allStories = await redis.hgetall('stories');
-    
-    // Ubah object stories ke array dan sorting terbaru
-    let stories = Object.values(allStories).map(s => JSON.parse(s));
-
-    if (search) {
-        stories = stories.filter(s => 
-            s.title.toLowerCase().includes(search.toLowerCase()) || 
-            s.genre.toLowerCase().includes(search.toLowerCase())
-        );
-    }
-
-    res.render('index', { stories: stories.reverse(), search });
+// Konfigurasi Database Upstash (Langsung sesuai permintaan)
+const redis = new Redis({
+  url: 'https://growing-firefly-50232.upstash.io',
+  token: 'AcQ4AAIncDFlYjI2ZWM2ODhmOGQ0N2YwOTI1Njg5ZDA3ZjRjMDdhMHAxNTAyMzI',
 });
 
-// ROUTE: Halaman Upload
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+
+// Beranda
+app.get('/', async (req, res) => {
+    try {
+        const search = req.query.search || '';
+        const allStories = await redis.hgetall('stories') || {};
+        
+        let stories = Object.values(allStories).map(s => typeof s === 'string' ? JSON.parse(s) : s);
+
+        if (search) {
+            stories = stories.filter(s => 
+                s.title.toLowerCase().includes(search.toLowerCase()) || 
+                s.genre.toLowerCase().includes(search.toLowerCase())
+            );
+        }
+
+        res.render('index', { stories: stories.reverse(), search });
+    } catch (err) {
+        res.status(500).send("Gagal memuat cerita");
+    }
+});
+
+// Halaman Form Upload
 app.get('/upload', (req, res) => {
     res.render('upload');
 });
 
-// ROUTE: Proses Upload
+// Proses Simpan Cerita
 app.post('/upload', async (req, res) => {
-    const { title, genre, storyText, authorName, authorImg, coverImg } = req.body;
+    const { title, genre, storyText, authorName, authorImg, coverImg, authorImgFile, coverImgFile } = req.body;
     const id = uuidv4();
     
+    // Logika: Gunakan file jika ada (Base64), jika tidak gunakan URL
+    const finalAuthorImg = authorImgFile || authorImg || `https://ui-avatars.com/api/?name=${authorName}`;
+    const finalCoverImg = coverImgFile || coverImg || 'https://via.placeholder.com/400x250?text=No+Cover';
+
     const newStory = {
         id,
         title,
         genre,
         storyText,
         authorName,
-        authorImg: authorImg || 'https://ui-avatars.com/api/?name=' + authorName,
-        coverImg: coverImg || 'https://via.placeholder.com/400x200?text=No+Cover',
-        createdAt: new Date().toLocaleString()
+        authorImg: finalAuthorImg,
+        coverImg: finalCoverImg,
+        createdAt: new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' })
     };
 
-    await redis.hset('stories', id, JSON.stringify(newStory));
+    await redis.hset('stories', { [id]: JSON.stringify(newStory) });
     res.redirect('/');
 });
 
-// ROUTE: Review Story Detail
+// Halaman Review Story
 app.get('/story/:id', async (req, res) => {
     const storyData = await redis.hget('stories', req.params.id);
     if (!storyData) return res.send("Story tidak ditemukan");
     
-    const story = JSON.parse(storyData);
+    const story = typeof storyData === 'string' ? JSON.parse(storyData) : storyData;
     res.render('story', { story });
 });
 
-app.listen(port, () => {
-    console.log(`Server jalan di http://localhost:${port}`);
-});
+// Export untuk Vercel
+module.exports = app;
+
+// Jalankan jika di lokal
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(3000, () => console.log('Server running on http://localhost:3000'));
+}
