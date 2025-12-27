@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="id">
+<head><meta charset="UTF-8"><script src="https://cdn.tailwindcss.com"></script></head>
+<body class="bg-slate-50 h-screen flex items-center justify-center p-6">
+    <div class="max-w-sm w-full bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
+        <h1 class="text-2xl font-black mb-2">Selamat Datang</h1>
+        <p class="text-slate-400 text-sm mb-8">Masuk ke akun Story.id kamu</p>
+        <% if(error) { %> <p class="bg-red-50 text-red-500 p-3 rounded-xl text-xs font-bold mb-4"><%= error %></p> <% } %>
+        <form action="/login" method="POST" class="space-y-4">
+            <input type="text" name="username" placeholder="Username" required class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="password" name="password" placeholder="Password" required class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-blue-500">
+            <button class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-100">Masuk Akun</button>
+        </form>
+        <p class="text-center text-sm text-slate-400 mt-8">Belum punya akun? <a href="/register" class="text-blue-600 font-bold">Daftar</a></p>
+    </div>
+</body>
+</html>
