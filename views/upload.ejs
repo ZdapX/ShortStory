@@ -1,77 +1,42 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Cerita</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-50 py-10 px-4">
-    <div class="max-w-xl mx-auto bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
-        <h1 class="text-2xl font-black text-slate-800 mb-8 text-center">Bagikan Cerita Anda</h1>
-        
+    <meta charset="UTF-8"><script src="https://cdn.tailwindcss.com"></script></head>
+<body class="bg-slate-50 p-6">
+    <div class="max-w-2xl mx-auto bg-white p-8 rounded-[2.5rem] border border-slate-200">
+        <h1 class="text-2xl font-black mb-8">Tulis Cerita Baru</h1>
         <form action="/upload" method="POST" class="space-y-6">
-            <!-- Judul -->
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Judul Cerita</label>
-                <input type="text" name="title" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Judul Cerita</label>
+                <input type="text" name="title" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500">
             </div>
-
-            <!-- Genre & Nama -->
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Pilih Genre</label>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Pilih Genre</label>
                     <select name="genre" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none">
                         <option>Romance</option><option>Horror</option><option>Action</option><option>Fantasy</option><option>Slice of Life</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Nama Anda</label>
-                    <input type="text" name="authorName" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Cover (File Gambar)</label>
+                    <input type="file" id="fileInp" class="w-full text-xs text-slate-500 file:bg-blue-50 file:text-blue-700 file:border-0 file:py-2 file:px-4 file:rounded-full file:mr-4">
+                    <input type="hidden" name="coverImgFile" id="base64Inp">
                 </div>
             </div>
-
-            <!-- Foto Profil -->
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Foto Profil (File atau URL)</label>
-                <input type="file" id="authorFile" class="mb-2 block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                <input type="hidden" name="authorImgFile" id="authorBase64">
-                <input type="url" name="authorImg" placeholder="Atau tempel URL foto di sini..." class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none text-sm">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Teks Cerita</label>
+                <textarea name="storyText" rows="10" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500"></textarea>
             </div>
-
-            <!-- Cover Cerita -->
-            <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Cover Cerita (File atau URL)</label>
-                <input type="file" id="coverFile" class="mb-2 block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                <input type="hidden" name="coverImgFile" id="coverBase64">
-                <input type="url" name="coverImg" placeholder="Atau tempel URL cover di sini..." class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none text-sm">
-            </div>
-
-            <!-- Teks Cerita -->
-            <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Isi Cerita</label>
-                <textarea name="storyText" rows="6" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none"></textarea>
-            </div>
-
-            <button type="submit" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-100">Publikasikan Cerita</button>
-            <a href="/" class="block text-center text-slate-400 text-sm font-medium">Kembali ke Beranda</a>
+            <button class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-100">Publikasikan Cerita</button>
+            <a href="/" class="block text-center text-slate-400 font-bold text-sm">Batal & Kembali</a>
         </form>
     </div>
-
     <script>
-        // Script untuk konversi file ke Base64 agar bisa disimpan di Redis
-        function encodeImageFileAsURL(element, hiddenId) {
-            element.addEventListener('change', function() {
-                var file = element.files[0];
-                var reader = new FileReader();
-                reader.onloadend = function() {
-                    document.getElementById(hiddenId).value = reader.result;
-                }
-                reader.readAsDataURL(file);
-            });
-        }
-        encodeImageFileAsURL(document.getElementById('authorFile'), 'authorBase64');
-        encodeImageFileAsURL(document.getElementById('coverFile'), 'coverBase64');
+        document.getElementById('fileInp').addEventListener('change', function() {
+            const reader = new FileReader();
+            reader.onload = () => document.getElementById('base64Inp').value = reader.result;
+            reader.readAsDataURL(this.files[0]);
+        });
     </script>
 </body>
 </html>
