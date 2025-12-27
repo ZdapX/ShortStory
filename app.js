@@ -9,8 +9,8 @@ const app = express();
 
 // Konfigurasi Database Upstash
 const redis = new Redis({
-  url: 'https://growing-firefly-50232.upstash.io',
-  token: 'AcQ4AAIncDFlYjI2ZWM2ODhmOGQ0N2YwOTI1Njg5ZDA3ZjRjMDdhMHAxNTAyMzI',
+  url: 'https://enough-kodiak-11567.upstash.io',
+  token: 'AS0vAAIncDEzZTZhMzRiZjAzNWU0NzMwOTNhZGJjYTkxMzIxYjVhM3AxMTE1Njc',
 });
 
 // Setting View Engine untuk Vercel
