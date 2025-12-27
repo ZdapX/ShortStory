@@ -7,80 +7,102 @@ const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 
-// Konfigurasi Database Upstash (Langsung sesuai permintaan)
+// Konfigurasi Database Upstash
 const redis = new Redis({
   url: 'https://growing-firefly-50232.upstash.io',
   token: 'AcQ4AAIncDFlYjI2ZWM2ODhmOGQ0N2YwOTI1Njg5ZDA3ZjRjMDdhMHAxNTAyMzI',
 });
 
+// Setting View Engine untuk Vercel
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-app.use(express.static(path.join(__dirname, 'public')));
+app.set('views', path.join(process.cwd(), 'views'));
+app.use(express.static(path.join(process.cwd(), 'public')));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+app.use(bodyParser.json());
 
-// Beranda
+// ROUTE: Beranda
 app.get('/', async (req, res) => {
     try {
         const search = req.query.search || '';
-        const allStories = await redis.hgetall('stories') || {};
+        // Ambil data dari Redis
+        const allStories = await redis.hgetall('stories');
         
-        let stories = Object.values(allStories).map(s => typeof s === 'string' ? JSON.parse(s) : s);
+        let stories = [];
+        
+        // Cek jika allStories tidak null dan ada isinya
+        if (allStories) {
+            stories = Object.values(allStories).map(s => {
+                return typeof s === 'string' ? JSON.parse(s) : s;
+            });
+        }
 
+        // Fitur Search
         if (search) {
             stories = stories.filter(s => 
-                s.title.toLowerCase().includes(search.toLowerCase()) || 
-                s.genre.toLowerCase().includes(search.toLowerCase())
+                (s.title && s.title.toLowerCase().includes(search.toLowerCase())) || 
+                (s.genre && s.genre.toLowerCase().includes(search.toLowerCase()))
             );
         }
 
-        res.render('index', { stories: stories.reverse(), search });
+        // Urutkan dari yang terbaru
+        stories.reverse();
+
+        res.render('index', { stories, search });
     } catch (err) {
-        res.status(500).send("Gagal memuat cerita");
+        console.error("Error Database:", err);
+        // Kirim array kosong jika error agar web tidak crash
+        res.render('index', { stories: [], search: '' });
     }
 });
 
-// Halaman Form Upload
+// ROUTE: Halaman Upload
 app.get('/upload', (req, res) => {
     res.render('upload');
 });
 
-// Proses Simpan Cerita
+// ROUTE: Proses Simpan
 app.post('/upload', async (req, res) => {
-    const { title, genre, storyText, authorName, authorImg, coverImg, authorImgFile, coverImgFile } = req.body;
-    const id = uuidv4();
-    
-    // Logika: Gunakan file jika ada (Base64), jika tidak gunakan URL
-    const finalAuthorImg = authorImgFile || authorImg || `https://ui-avatars.com/api/?name=${authorName}`;
-    const finalCoverImg = coverImgFile || coverImg || 'https://via.placeholder.com/400x250?text=No+Cover';
+    try {
+        const { title, genre, storyText, authorName, authorImg, coverImg, authorImgFile, coverImgFile } = req.body;
+        const id = uuidv4();
+        
+        const finalAuthorImg = authorImgFile || authorImg || `https://ui-avatars.com/api/?name=${authorName}`;
+        const finalCoverImg = coverImgFile || coverImg || 'https://via.placeholder.com/400x250?text=No+Cover';
 
-    const newStory = {
-        id,
-        title,
-        genre,
-        storyText,
-        authorName,
-        authorImg: finalAuthorImg,
-        coverImg: finalCoverImg,
-        createdAt: new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' })
-    };
+        const newStory = {
+            id,
+            title,
+            genre,
+            storyText,
+            authorName,
+            authorImg: finalAuthorImg,
+            coverImg: finalCoverImg,
+            createdAt: new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' })
+        };
 
-    await redis.hset('stories', { [id]: JSON.stringify(newStory) });
-    res.redirect('/');
+        await redis.hset('stories', { [id]: JSON.stringify(newStory) });
+        res.redirect('/');
+    } catch (err) {
+        console.error("Upload Error:", err);
+        res.status(500).send("Gagal mengupload cerita");
+    }
 });
 
-// Halaman Review Story
+// ROUTE: Detail Story
 app.get('/story/:id', async (req, res) => {
-    const storyData = await redis.hget('stories', req.params.id);
-    if (!storyData) return res.send("Story tidak ditemukan");
-    
-    const story = typeof storyData === 'string' ? JSON.parse(storyData) : storyData;
-    res.render('story', { story });
+    try {
+        const storyData = await redis.hget('stories', req.params.id);
+        if (!storyData) return res.status(404).send("Cerita tidak ditemukan");
+        
+        const story = typeof storyData === 'string' ? JSON.parse(storyData) : storyData;
+        res.render('story', { story });
+    } catch (err) {
+        res.status(500).send("Terjadi kesalahan saat memuat cerita");
+    }
 });
 
-// Export untuk Vercel
 module.exports = app;
 
-// Jalankan jika di lokal
 if (process.env.NODE_ENV !== 'production') {
     app.listen(3000, () => console.log('Server running on http://localhost:3000'));
 }
