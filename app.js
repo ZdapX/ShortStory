@@ -79,15 +79,19 @@ app.get('/logout', (req, res) => { req.session = null; res.redirect('/'); });
 app.get('/', async (req, res) => {
     try {
         const { search, genre } = req.query;
-        // Gunakan hvals untuk mengambil isi tanpa Key (Lebih ringan sedikit)
         const allData = await redis.hvals('stories') || [];
-        let stories = allData.map(s => typeof s === 'string' ? JSON.parse(s) : s);
+        
+        // Memastikan data adalah array dan diparse dengan benar
+        let stories = Array.isArray(allData) ? allData.map(s => typeof s === 'string' ? JSON.parse(s) : s) : [];
 
         if (genre) stories = stories.filter(s => s.genre === genre);
-        if (search) stories = stories.filter(s => s.title.toLowerCase().includes(search.toLowerCase()));
+        if (search) stories = stories.filter(s => s.title && s.title.toLowerCase().includes(search.toLowerCase()));
 
         res.render('index', { stories: stories.reverse(), search: search || '', currentGenre: genre || '' });
-    } catch (err) { res.render('index', { stories: [], search: '', currentGenre: '' }); }
+    } catch (err) { 
+        console.error(err);
+        res.render('index', { stories: [], search: '', currentGenre: '' }); 
+    }
 });
 
 app.get('/upload', checkAuth, (req, res) => res.render('upload'));
@@ -97,6 +101,7 @@ app.post('/upload', checkAuth, async (req, res) => {
         const { title, genre, storyText, coverImg, coverImgFile } = req.body;
         const id = uuidv4();
         const userId = req.session.user.id;
+        
         const userFullData = await redis.hget('users', userId);
         const userFull = typeof userFullData === 'string' ? JSON.parse(userFullData) : userFullData;
 
@@ -114,38 +119,33 @@ app.post('/upload', checkAuth, async (req, res) => {
             comments: []
         };
 
-        // SIMPAN CERITA
         await redis.hset('stories', { [id]: JSON.stringify(newStory) });
-        // SIMPAN INDEX (Agar profil tidak timeout) - Mencatat ID cerita ke milik user
         await redis.sadd(`user_stories_idx:${userId}`, id);
         
         res.redirect('/');
     } catch (err) { res.status(500).send("Gagal upload"); }
 });
 
-// --- PROFILE (OPTIMIZED) ---
+// --- PROFILE (FIXED & SAFER) ---
 app.get('/profile/:id', async (req, res) => {
     try {
         const userId = req.params.id;
         
-        // 1. Ambil data User
         const userData = await redis.hget('users', userId);
-        if (!userData) return res.redirect('/');
+        if (!userData) return res.status(404).send("User tidak ditemukan");
         const profile = typeof userData === 'string' ? JSON.parse(userData) : userData;
 
-        // 2. Ambil ID cerita milik user ini saja (Menggunakan INDEX)
-        const storyIds = await redis.smembers(`user_stories_idx:${userId}`) || [];
+        const storyIds = await redis.smembers(`user_stories_idx:${userId}`);
         
         let stories = [];
-        if (storyIds.length > 0) {
-            // Ambil hanya cerita yang ID nya ada di daftar user ini
-            const rawStories = await redis.hmget('stories', ...storyIds);
+        // Perbaikan cara ambil banyak story agar tidak TypeError
+        if (storyIds && Array.isArray(storyIds) && storyIds.length > 0) {
+            const rawStories = await Promise.all(storyIds.map(id => redis.hget('stories', id)));
             stories = rawStories
                 .filter(s => s !== null)
                 .map(s => typeof s === 'string' ? JSON.parse(s) : s);
         }
         
-        // 3. Follow stats
         const followers = await redis.smembers(`followers:${userId}`) || [];
         let isFollowing = false;
         if(req.session.user) {
@@ -159,14 +159,15 @@ app.get('/profile/:id', async (req, res) => {
             isFollowing
         });
     } catch (e) {
-        console.error(e);
-        res.redirect('/');
+        console.error("Profile Error:", e);
+        res.status(500).send("Terjadi kesalahan saat memuat profil");
     }
 });
 
-// Fitur Like & Comment (Sama seperti sebelumnya)
+// --- INTERACTION ---
 app.post('/story/:id/like', checkAuth, async (req, res) => {
     const data = await redis.hget('stories', req.params.id);
+    if(!data) return res.json({ count: 0 });
     const story = typeof data === 'string' ? JSON.parse(data) : data;
     const userId = req.session.user.id;
     if (!story.likes) story.likes = [];
@@ -179,6 +180,7 @@ app.post('/story/:id/like', checkAuth, async (req, res) => {
 app.post('/story/:id/comment', checkAuth, async (req, res) => {
     const data = await redis.hget('stories', req.params.id);
     const story = typeof data === 'string' ? JSON.parse(data) : data;
+    if (!story.comments) story.comments = [];
     story.comments.push({ userName: req.session.user.name, text: req.body.text, date: new Date().toLocaleDateString() });
     await redis.hset('stories', { [req.params.id]: JSON.stringify(story) });
     res.redirect(`/story/${req.params.id}`);
