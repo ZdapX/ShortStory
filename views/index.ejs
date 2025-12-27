@@ -3,42 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShortStory - Home</title>
+    <title>STORY.ID - Baca & Tulis Cerita Pendek</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-[#f3f4f6] font-sans text-slate-900">
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+<body class="bg-slate-50 font-sans text-slate-900">
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-            <h1 class="text-2xl font-black text-blue-600 tracking-tighter">STORY.ID</h1>
-            <a href="/upload" class="bg-blue-600 text-white px-5 py-2 rounded-xl font-bold text-sm hover:bg-blue-700 transition">Tulis Cerita</a>
+            <a href="/" class="text-2xl font-black text-blue-600 tracking-tighter">STORY.ID</a>
+            <div class="flex items-center gap-4">
+                <% if (user) { %>
+                    <a href="/upload" class="hidden md:block bg-blue-600 text-white px-5 py-2 rounded-xl font-bold text-sm hover:bg-blue-700">Tulis Cerita</a>
+                    <a href="/profile/<%= user.id %>" class="flex items-center gap-2">
+                        <span class="text-sm font-bold text-slate-700 hidden md:inline"><%= user.name %></span>
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xs"><%= user.name[0] %></div>
+                    </a>
+                    <a href="/logout" class="text-slate-400 hover:text-red-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg></a>
+                <% } else { %>
+                    <a href="/login" class="text-slate-600 font-bold text-sm">Masuk</a>
+                    <a href="/register" class="bg-blue-600 text-white px-5 py-2 rounded-xl font-bold text-sm hover:bg-blue-700">Daftar</a>
+                <% } %>
+            </div>
         </div>
-    </header>
+    </nav>
 
     <main class="max-w-6xl mx-auto px-4 py-8">
-        <form action="/" method="GET" class="mb-10">
-            <input type="text" name="search" placeholder="Cari judul atau genre..." value="<%= search %>" 
-            class="w-full bg-white p-4 rounded-2xl border border-slate-200 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition">
+        <!-- Search -->
+        <form action="/" method="GET" class="mb-6">
+            <input type="text" name="search" placeholder="Cari judul cerita..." value="<%= search %>" 
+            class="w-full bg-white p-4 rounded-2xl border border-slate-200 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none">
         </form>
 
+        <!-- Genre Filter -->
+        <div class="flex gap-2 overflow-x-auto pb-6 no-scrollbar">
+            <% ['Romance', 'Horror', 'Action', 'Fantasy', 'Slice of Life'].forEach(genre => { %>
+                <a href="/?genre=<%= genre %>" 
+                   class="px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition <%= currentGenre === genre ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-500' %>">
+                   <%= genre %>
+                </a>
+            <% }) %>
+            <% if(currentGenre) { %> <a href="/" class="text-red-500 text-xs font-bold p-2 italic">Reset Filter</a> <% } %>
+        </div>
+
+        <!-- Story Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <% if (stories && stories.length > 0) { %>
                 <% stories.forEach(story => { %>
                     <div class="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col">
                         <div class="p-4 flex items-center gap-3">
-                            <img src="<%= story.authorImg %>" class="w-10 h-10 rounded-full object-cover bg-slate-100 border border-slate-100">
-                            <div class="flex-grow">
-                                <p class="text-sm font-bold text-slate-800"><%= story.authorName %></p>
-                                <p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest"><%= story.genre %></p>
-                            </div>
+                            <a href="/profile/<%= story.authorId %>" class="flex items-center gap-3 flex-grow">
+                                <img src="<%= story.authorImg %>" class="w-10 h-10 rounded-full object-cover bg-slate-100 border border-slate-100">
+                                <div>
+                                    <p class="text-sm font-bold text-slate-800"><%= story.authorName %></p>
+                                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest"><%= story.genre %></p>
+                                </div>
+                            </a>
                         </div>
                         
                         <a href="/story/<%= story.id %>">
-                            <img src="<%= story.coverImg %>" class="w-full h-52 object-cover bg-slate-200">
+                            <img src="<%= story.coverImg %>" class="w-full h-56 object-cover bg-slate-200">
                         </a>
                         
                         <div class="p-5 flex-grow">
                             <h2 class="text-xl font-bold mb-2 line-clamp-1"><%= story.title %></h2>
-                            <p class="text-slate-500 text-sm line-clamp-3"><%= story.storyText %></p>
+                            <p class="text-slate-500 text-sm line-clamp-3 mb-4"><%= story.storyText %></p>
+                            <div class="flex items-center gap-4 text-xs font-bold text-slate-400">
+                                <span>❤️ <%= story.likes ? story.likes.length : 0 %></span>
+                                <span>💬 <%= story.comments ? story.comments.length : 0 %></span>
+                            </div>
                         </div>
                         
                         <div class="p-5 pt-0">
@@ -48,7 +80,7 @@
                 <% }) %>
             <% } else { %>
                 <div class="col-span-full text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
-                    <p class="text-slate-400 font-medium">Belum ada cerita. Ayo mulai menulis!</p>
+                    <p class="text-slate-400 font-medium italic">Belum ada cerita di sini...</p>
                 </div>
             <% } %>
         </div>
