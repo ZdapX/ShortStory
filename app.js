@@ -1,86 +1,108 @@
 
 const express = require('express');
-const { createClient } = require('@supabase/supabase-js');
+const { Redis } = require('@upstash/redis');
 const bodyParser = require('body-parser');
 const path = require('path');
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 
-// MASUKKAN DATA DARI SETTINGS > API SUPABASE ANDA DI SINI
-const SUPABASE_URL = 'https://xwklgkkjoempqncgfujn.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_LG6ji6SFK7NtUpLn17enkg_Edoxjifn';
+// Konfigurasi Database Upstash
+const redis = new Redis({
+  url: 'https://growing-firefly-50232.upstash.io',
+  token: 'AcQ4AAIncDFlYjI2ZWM2ODhmOGQ0N2YwOTI1Njg5ZDA3ZjRjMDdhMHAxNTAyMzI',
+});
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
+// Setting View Engine untuk Vercel
 app.set('view engine', 'ejs');
 app.set('views', path.join(process.cwd(), 'views'));
 app.use(express.static(path.join(process.cwd(), 'public')));
-app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 app.use(bodyParser.json());
 
-// 1. BERANDA (MENAMPILKAN SEMUA CERITA)
+// ROUTE: Beranda
 app.get('/', async (req, res) => {
-    const search = req.query.search || '';
-    
-    let query = supabase.from('stories').select('*').order('createdAt', { ascending: false });
+    try {
+        const search = req.query.search || '';
+        // Ambil data dari Redis
+        const allStories = await redis.hgetall('stories');
+        
+        let stories = [];
+        
+        // Cek jika allStories tidak null dan ada isinya
+        if (allStories) {
+            stories = Object.values(allStories).map(s => {
+                return typeof s === 'string' ? JSON.parse(s) : s;
+            });
+        }
 
-    if (search) {
-        query = query.or(`title.ilike.%${search}%,genre.ilike.%${search}%`);
+        // Fitur Search
+        if (search) {
+            stories = stories.filter(s => 
+                (s.title && s.title.toLowerCase().includes(search.toLowerCase())) || 
+                (s.genre && s.genre.toLowerCase().includes(search.toLowerCase()))
+            );
+        }
+
+        // Urutkan dari yang terbaru
+        stories.reverse();
+
+        res.render('index', { stories, search });
+    } catch (err) {
+        console.error("Error Database:", err);
+        // Kirim array kosong jika error agar web tidak crash
+        res.render('index', { stories: [], search: '' });
     }
-
-    const { data: stories, error } = await query;
-
-    if (error) {
-        console.error(error);
-        return res.render('index', { stories: [], search });
-    }
-
-    res.render('index', { stories, search });
 });
 
-// 2. HALAMAN UPLOAD
+// ROUTE: Halaman Upload
 app.get('/upload', (req, res) => {
     res.render('upload');
 });
 
-// 3. PROSES SIMPAN CERITA
+// ROUTE: Proses Simpan
 app.post('/upload', async (req, res) => {
-    const { title, genre, storyText, authorName, authorImg, coverImg, authorImgFile, coverImgFile } = req.body;
+    try {
+        const { title, genre, storyText, authorName, authorImg, coverImg, authorImgFile, coverImgFile } = req.body;
+        const id = uuidv4();
+        
+        const finalAuthorImg = authorImgFile || authorImg || `https://ui-avatars.com/api/?name=${authorName}`;
+        const finalCoverImg = coverImgFile || coverImg || 'https://via.placeholder.com/400x250?text=No+Cover';
 
-    const { error } = await supabase.from('stories').insert([
-        {
+        const newStory = {
+            id,
             title,
             genre,
             storyText,
             authorName,
-            authorImg: authorImgFile || authorImg || `https://ui-avatars.com/api/?name=${authorName}`,
-            coverImg: coverImgFile || coverImg || 'https://via.placeholder.com/400x250?text=No+Cover'
-        }
-    ]);
+            authorImg: finalAuthorImg,
+            coverImg: finalCoverImg,
+            createdAt: new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' })
+        };
 
-    if (error) {
-        console.error(error);
-        return res.status(500).send("Gagal simpan ke Supabase");
+        await redis.hset('stories', { [id]: JSON.stringify(newStory) });
+        res.redirect('/');
+    } catch (err) {
+        console.error("Upload Error:", err);
+        res.status(500).send("Gagal mengupload cerita");
     }
-
-    res.redirect('/');
 });
 
-// 4. REVIEW CERITA (DETAIL)
+// ROUTE: Detail Story
 app.get('/story/:id', async (req, res) => {
-    const { data: story, error } = await supabase
-        .from('stories')
-        .select('*')
-        .eq('id', req.params.id)
-        .single();
-
-    if (error || !story) return res.send("Cerita tidak ditemukan");
-
-    res.render('story', { story });
+    try {
+        const storyData = await redis.hget('stories', req.params.id);
+        if (!storyData) return res.status(404).send("Cerita tidak ditemukan");
+        
+        const story = typeof storyData === 'string' ? JSON.parse(storyData) : storyData;
+        res.render('story', { story });
+    } catch (err) {
+        res.status(500).send("Terjadi kesalahan saat memuat cerita");
+    }
 });
 
 module.exports = app;
 
 if (process.env.NODE_ENV !== 'production') {
-    app.listen(3000, () => console.log('Server jalan di http://localhost:3000'));
+    app.listen(3000, () => console.log('Server running on http://localhost:3000'));
 }
